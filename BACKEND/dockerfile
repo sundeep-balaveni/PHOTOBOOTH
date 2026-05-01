@@ -8,7 +8,7 @@ COPY . .
 
 FROM node:18-alpine
 WORKDIR /app
-RUN adduser -m appuser
+RUN adduser -d appuser         #ubuntu: -m #alpine: adduser -D
 COPY --from=builder /app /app   # Copy the built application from the builder stage
 RUN chown -R appuser:appuser /app    # Ensure the app directory is owned by the non-root user
 USER appuser
