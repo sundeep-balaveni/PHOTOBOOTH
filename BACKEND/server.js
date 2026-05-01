@@ -1,41 +1,45 @@
 const express = require("express");
 const multer = require("multer");
 const mysql = require("mysql2");
+const cors = require("cors");
 const path = require("path");
 
 const app = express();
 
-// 🔥 Increase payload limits
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
+// ✅ CORS FIX
+app.use(cors({
+  origin: "*", // later restrict to your domain
+}));
 
-// Serve uploaded files
+// Body limits
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+// Serve images
 app.use("/uploads", express.static("/app/uploads"));
 
-// 🔥 DB connection with retry
+// 🔥 DB retry
 let db;
-
-function connectWithRetry() {
+function connectDB() {
   db = mysql.createConnection({
-    host: process.env.DB_HOST || "database",
-    user: process.env.DB_USER || "root",
-    password: process.env.DB_PASSWORD || "rootpassword",
-    database: process.env.DB_NAME || "filedb"
+    host: "database",
+    user: "root",
+    password: "rootpassword",
+    database: "filedb"
   });
 
   db.connect((err) => {
     if (err) {
-      console.log("⏳ Waiting for DB...");
-      setTimeout(connectWithRetry, 3000);
+      console.log("⏳ Waiting DB...");
+      setTimeout(connectDB, 3000);
     } else {
-      console.log("✅ MySQL Connected");
+      console.log("✅ DB Connected");
     }
   });
 }
+connectDB();
 
-connectWithRetry();
-
-// 🔥 Multer config (with limits + validation)
+// Multer config
 const storage = multer.diskStorage({
   destination: "/app/uploads",
   filename: (req, file, cb) => {
@@ -45,42 +49,26 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (req, file, cb) => {
-    const allowed = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowed.includes(file.mimetype)) {
-      return cb(new Error("Only JPG, PNG, WEBP allowed"));
-    }
-    cb(null, true);
-  }
+  limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 // 🔥 Upload API
 app.post("/upload", upload.single("file"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded" });
-  }
-
   const filePath = "/uploads/" + req.file.filename;
 
-  db.query(
-    "INSERT INTO files (path) VALUES (?)",
-    [filePath],
-    (err) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "DB Error" });
-      }
+  db.query("INSERT INTO files (path) VALUES (?)", [filePath], (err) => {
+    if (err) return res.status(500).send(err);
 
-      res.json({ path: filePath });
-    }
-  );
+    res.json({ path: filePath });
+  });
 });
 
-// 🔥 Global error handler (important)
-app.use((err, req, res, next) => {
-  console.error(err.message);
-  res.status(500).json({ error: err.message });
+// 🔥 Get all images (gallery API)
+app.get("/images", (req, res) => {
+  db.query("SELECT * FROM files ORDER BY id DESC", (err, results) => {
+    if (err) return res.status(500).send(err);
+    res.json(results);
+  });
 });
 
-app.listen(3000, () => console.log("🚀 Server running on 3000"));
+app.listen(3000, () => console.log("🚀 Backend running on 3000"));
