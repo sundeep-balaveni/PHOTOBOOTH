@@ -1,0 +1,47 @@
+services:
+  frontend:
+    build:
+      context: ./FRONTEND
+      dockerfile: dockerfile
+    image: frontend:2.2.2
+    container_name: frontend
+    ports:
+      - "80:80"
+     # - "443:443"
+  
+  backend:
+    build:
+      context: ./BACKEND
+      dockerfile: dockerfile
+    image: backend:2.2.2
+    container_name: backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - database
+
+  database:
+    build:
+      context: ./DATABASE
+      dockerfile: dockerfile
+    image: database:2.2.2
+    container_name: database
+    ports:
+      - "3306:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+networks: 
+  default: 
+    driver: bridge
+    name: photoshop_network
+    external: true
+
+volumes:
+  mysql_data:
+    driver: local
+    name: mysql_data
+
+
+   
