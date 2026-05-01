@@ -8,8 +8,8 @@ COPY . .
 
 FROM node:18-alpine
 WORKDIR /app
-RUN adduser -D appuser         #ubuntu: -m #alpine: adduser -D   #D used in alphine not to cretae home directory and defalut settings no loin 
-COPY --from=builder /app /app   # Copy the built application from the builder stage
-RUN chown -R appuser:appuser /app    # Ensure the app directory is owned by the non-root user
+RUN adduser -D appuser         
+COPY --from=builder /app /app   
+RUN chown -R appuser:appuser /app    
 USER appuser
 CMD ["node", "server.js"]
