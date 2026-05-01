@@ -1,0 +1,15 @@
+FROM node:18 as builder
+WORKDIR /app
+COPY package.json ./
+RUN npm install
+COPY . .
+
+
+
+FROM node:18-alpine
+WORKDIR /app
+RUN adduser -m appuser
+COPY --from=builder /app /app   # Copy the built application from the builder stage
+RUN chown -R appuser:appuser /app    # Ensure the app directory is owned by the non-root user
+USER appuser
+CMD ["node", "server.js"]
