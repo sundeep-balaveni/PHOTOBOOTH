@@ -1,119 +1,157 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Image Upload</title>
+  <title>Image Upload Dashboard</title>
   <style>
     body {
-      font-family: Arial;
-      background: linear-gradient(to right, #667eea, #764ba2);
-      display: flex;
-      height: 100vh;
-      align-items: center;
-      justify-content: center;
+      font-family: "Segoe UI", sans-serif;
+      background: #f4f6f9;
       margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
 
-    .card {
-      background: white;
+    .container {
+      width: 420px;
+      background: #fff;
       padding: 30px;
       border-radius: 12px;
-      text-align: center;
-      width: 320px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
 
-    input {
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    input[type="file"] {
       margin: 15px 0;
     }
 
     button {
-      background: #667eea;
-      color: white;
+      width: 100%;
+      padding: 12px;
+      background: #4f46e5;
       border: none;
-      padding: 10px 20px;
+      color: white;
       border-radius: 6px;
+      font-size: 15px;
       cursor: pointer;
-      transition: 0.3s;
     }
 
     button:hover {
-      background: #5a67d8;
+      background: #4338ca;
+    }
+
+    .status {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .success {
+      color: green;
     }
 
     img {
-      margin-top: 15px;
+      margin-top: 20px;
       width: 100%;
       border-radius: 8px;
       display: none;
     }
 
-    .loader {
-      display: none;
+    .progress {
       margin-top: 10px;
-      font-size: 14px;
-      color: gray;
+      height: 5px;
+      background: #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #4f46e5;
     }
   </style>
 </head>
 
 <body>
-  <div class="card">
+  <div class="container">
     <h2>Upload Image</h2>
 
     <form id="uploadForm">
-      <input type="file" name="file" id="fileInput" required />
-      <br>
+      <input type="file" id="fileInput" required />
       <button type="submit">Upload</button>
     </form>
 
-    <div class="loader" id="loader">Uploading...</div>
+    <div class="progress"><div class="progress-bar"></div></div>
+    <div class="status" id="status"></div>
 
     <img id="preview" />
   </div>
 
 <script>
-  const form = document.getElementById("uploadForm");
-  const preview = document.getElementById("preview");
-  const loader = document.getElementById("loader");
+const form = document.getElementById("uploadForm");
+const status = document.getElementById("status");
+const preview = document.getElementById("preview");
+const progress = document.querySelector(".progress");
+const progressBar = document.querySelector(".progress-bar");
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    const fileInput = document.getElementById("fileInput");
+  const fileInput = document.getElementById("fileInput");
+  const file = fileInput.files[0];
 
-    if (!fileInput.files.length) {
-      alert("Please select a file");
-      return;
+  if (!file) {
+    status.innerHTML = "Please select a file";
+    status.className = "status error";
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  status.innerHTML = "Uploading...";
+  status.className = "status";
+  progress.style.display = "block";
+  progressBar.style.width = "30%";
+
+  try {
+    const res = await fetch("http://98.94.109.171:3000/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text);
     }
 
-    const formData = new FormData();
-    formData.append("file", fileInput.files[0]);
+    const data = await res.json();
 
-    loader.style.display = "block";
-    preview.style.display = "none";
+    progressBar.style.width = "100%";
 
-    try {
-      const res = await fetch("/upload", {
-        method: "POST",
-        body: formData
-      });
+    status.innerHTML = "Upload successful!";
+    status.className = "status success";
 
-      const data = await res.json();
+    preview.src = "http://98.94.109.171:3000" + data.path;
+    preview.style.display = "block";
 
-      // 🔥 IMPORTANT: use ID → fetch image from backend
-      preview.src = `/image/${data.id}`;
-
-      preview.onload = () => {
-        loader.style.display = "none";
-        preview.style.display = "block";
-      };
-
-    } catch (err) {
-      loader.style.display = "none";
-      alert("Upload failed");
-      console.error(err);
-    }
-  });
+  } catch (err) {
+    progressBar.style.width = "0%";
+    status.innerHTML = err.message;
+    status.className = "status error";
+  }
+});
 </script>
 
 </body>
