@@ -36,7 +36,7 @@ networks:
   default: 
     driver: bridge
     name: photoshop_network
-    external: true
+    external: false
 
 volumes:
   mysql_data:
