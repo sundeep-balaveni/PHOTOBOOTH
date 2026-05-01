@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Upload Image</title>
+  <title>Image Upload</title>
   <style>
     body {
       font-family: Arial;
@@ -18,7 +18,7 @@
       padding: 30px;
       border-radius: 12px;
       text-align: center;
-      width: 300px;
+      width: 320px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
 
@@ -33,12 +33,25 @@
       padding: 10px 20px;
       border-radius: 6px;
       cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #5a67d8;
     }
 
     img {
       margin-top: 15px;
       width: 100%;
       border-radius: 8px;
+      display: none;
+    }
+
+    .loader {
+      display: none;
+      margin-top: 10px;
+      font-size: 14px;
+      color: gray;
     }
   </style>
 </head>
@@ -53,29 +66,53 @@
       <button type="submit">Upload</button>
     </form>
 
-    <img id="preview" style="display:none;" />
+    <div class="loader" id="loader">Uploading...</div>
+
+    <img id="preview" />
   </div>
 
 <script>
   const form = document.getElementById("uploadForm");
   const preview = document.getElementById("preview");
+  const loader = document.getElementById("loader");
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const fileInput = document.getElementById("fileInput");
+
+    if (!fileInput.files.length) {
+      alert("Please select a file");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
 
-    const res = await fetch("/upload", {
-      method: "POST",
-      body: formData
-    });
+    loader.style.display = "block";
+    preview.style.display = "none";
 
-    const data = await res.json();
+    try {
+      const res = await fetch("/upload", {
+        method: "POST",
+        body: formData
+      });
 
-    preview.src = data.path;
-    preview.style.display = "block";
+      const data = await res.json();
+
+      // 🔥 IMPORTANT: use ID → fetch image from backend
+      preview.src = `/image/${data.id}`;
+
+      preview.onload = () => {
+        loader.style.display = "none";
+        preview.style.display = "block";
+      };
+
+    } catch (err) {
+      loader.style.display = "none";
+      alert("Upload failed");
+      console.error(err);
+    }
   });
 </script>
 
