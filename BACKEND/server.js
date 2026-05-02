@@ -1,3 +1,5 @@
+require("dotenv").config(); // ✅ load env variables
+
 const express = require("express");
 const multer = require("multer");
 const mysql = require("mysql2");
@@ -8,7 +10,7 @@ const app = express();
 
 // ✅ CORS FIX
 app.use(cors({
-  origin: "*", // later restrict to your domain
+  origin: "*",
 }));
 
 // Body limits
@@ -22,10 +24,10 @@ app.use("/uploads", express.static("/app/uploads"));
 let db;
 function connectDB() {
   db = mysql.createConnection({
-    host: "database",
-    user: "root",
-    password: "rootpassword",
-    database: "filedb"
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
   });
 
   db.connect((err) => {
